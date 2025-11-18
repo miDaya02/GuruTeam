@@ -20,13 +20,19 @@
         "url": "https://github.com"
     },
     "dependencies": {
-        "@azure/identity": "^4.11.1",
+        "@azure/identity": "^4.13.0",
         "@microsoft/teams.apps": "^2.0.0",
         "@microsoft/teams.common": "^2.0.0",
-        "node-fetch": "^3.3.2"
+        "botbuilder": "^4.23.3",
+        "chart.js": "^4.5.1",
+        "chartjs-node-canvas": "^5.0.0",
+        "node-fetch": "^3.3.2",
+        "restify": "^11.1.0"
     },
     "devDependencies": {
-        "@types/node": "^20.0.0",
+        "@types/node": "^20.19.25",
+        "@types/node-fetch": "^2.6.13",
+        "@types/restify": "^8.5.12",
         "env-cmd": "^10.1.0",
         "nodemon": "^3.1.7",
         "ts-node": "^10.4.0",

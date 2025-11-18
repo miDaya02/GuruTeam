@@ -1,10 +1,12 @@
 import fetch from "node-fetch";
+import { DefaultAzureCredential } from "@azure/identity";
+import { TurnContext } from "botbuilder";
 
-export async function userInfo(context: any) {
+export async function userInfo(context: TurnContext) {
   const user = context.activity.from;
 
   if (!user) {
-    await context.send("No se pudo obtener la información del usuario.");
+    await context.sendActivity("No se pudo obtener la información del usuario.");
     return;
   }
 
@@ -45,7 +47,8 @@ export async function userInfo(context: any) {
           });
         } else {
           const errorText = await res.text();
-          console.error("❌ Error en Graph API:", res.status, errorText);
+          console.error("❌ Error en Graph API:", res.status, res.statusText);
+          console.error("Respuesta:", errorText);
         }
       }
     } catch (error: any) {
@@ -71,16 +74,48 @@ export async function userInfo(context: any) {
     message += `\n📱 **Teléfono:** ${mobilePhone}`;
   }
 
-  await context.send(message);
+  console.log("📤 Enviando respuesta al usuario...");
+  await context.sendActivity(message);
+  console.log("✅ Respuesta enviada");
 }
 
 async function getGraphToken(): Promise<string | null> {
+  const isAzure = process.env.RUNNING_ON_AZURE === '1';
+  
+  console.log(`🔐 Modo de autenticación: ${isAzure ? 'Azure Managed Identity' : 'Client Credentials'}`);
+  
+  if (isAzure) {
+    return getTokenWithManagedIdentity();
+  } else {
+    return getTokenWithClientSecret();
+  }
+}
+
+async function getTokenWithManagedIdentity(): Promise<string | null> {
+  try {
+    const credential = new DefaultAzureCredential();
+    const tokenResponse = await credential.getToken("https://graph.microsoft.com/.default");
+    
+    console.log("✅ Token obtenido con Managed Identity");
+    return tokenResponse.token;
+  } catch (error: any) {
+    console.error("❌ Error obteniendo token con Managed Identity:", error.message);
+    return null;
+  }
+}
+
+async function getTokenWithClientSecret(): Promise<string | null> {
   const clientId = process.env.CLIENT_ID;
   const clientSecret = process.env.CLIENT_SECRET;
   const tenantId = process.env.TENANT_ID;
 
-  if (!clientId || !clientSecret || !tenantId) {
-    console.error("❌ Faltan credenciales");
+  if (!clientId || !tenantId) {
+    console.error("❌ Faltan CLIENT_ID o TENANT_ID");
+    return null;
+  }
+
+  if (!clientSecret) {
+    console.error("❌ Falta CLIENT_SECRET");
     return null;
   }
 
@@ -93,6 +128,8 @@ async function getGraphToken(): Promise<string | null> {
     params.append('scope', 'https://graph.microsoft.com/.default');
     params.append('grant_type', 'client_credentials');
 
+    console.log(`🔐 Solicitando token para tenant: ${tenantId}`);
+
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
@@ -103,14 +140,16 @@ async function getGraphToken(): Promise<string | null> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ Error obteniendo token:", response.status, errorText);
+      console.error("❌ Error obteniendo token:", response.status, response.statusText);
+      console.error("Detalles:", errorText);
       return null;
     }
 
     const data: any = await response.json();
+    console.log("✅ Token obtenido con Client Secret");
     return data.access_token;
   } catch (error: any) {
-    console.error("❌ Error en getGraphToken:", error.message);
+    console.error("❌ Error en getTokenWithClientSecret:", error.message);
     return null;
   }
 }
