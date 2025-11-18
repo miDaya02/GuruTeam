@@ -7,9 +7,6 @@ import type { ChartConfiguration } from "chart.js";
  */
 export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' | 'pie' = 'bar') {
   try {
-    console.log(`📊 Generando gráfica tipo: ${chartType}`);
-
-    // Configurar el canvas para Chart.js
     const width = 800;
     const height = 600;
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ 
@@ -18,14 +15,10 @@ export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' 
       backgroundColour: 'white'
     });
 
-    // Datos de ejemplo
     const configuration = getChartConfiguration(chartType);
-
-    // Generar la imagen
-    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration as any);
+    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
     const base64Image = imageBuffer.toString('base64');
 
-    // Crear Adaptive Card con la imagen
     const card = CardFactory.adaptiveCard({
       type: "AdaptiveCard",
       version: "1.4",
@@ -72,17 +65,14 @@ export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' 
     });
 
     await context.sendActivity({ attachments: [card] });
-    console.log("✅ Gráfica enviada exitosamente");
 
-  } catch (error: any) {
-    console.error("❌ Error generando gráfica:", error);
-    await context.sendActivity(`⚠️ Error al generar la gráfica: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    console.error("❌ Error generando gráfica:", errorMessage);
+    await context.sendActivity(`⚠️ Error al generar la gráfica: ${errorMessage}`);
   }
 }
 
-/**
- * Genera configuración de Chart.js según el tipo
- */
 function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration {
   const labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
   const data = [65, 59, 80, 81, 56, 55];
@@ -223,9 +213,6 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration
   }
 }
 
-/**
- * Envía una gráfica con datos personalizados
- */
 export async function sendCustomChart(
   context: TurnContext, 
   labels: string[], 
@@ -234,8 +221,6 @@ export async function sendCustomChart(
   type: 'bar' | 'line' | 'pie' = 'bar'
 ) {
   try {
-    console.log(`📊 Generando gráfica personalizada: ${title}`);
-
     const width = 800;
     const height = 600;
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ 
@@ -284,7 +269,7 @@ export async function sendCustomChart(
       }
     };
 
-    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration as any);
+    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
     const base64Image = imageBuffer.toString('base64');
 
     const card = CardFactory.adaptiveCard({
@@ -315,17 +300,14 @@ export async function sendCustomChart(
     });
 
     await context.sendActivity({ attachments: [card] });
-    console.log("✅ Gráfica personalizada enviada");
 
-  } catch (error: any) {
-    console.error("❌ Error generando gráfica personalizada:", error);
-    await context.sendActivity(`⚠️ Error al generar la gráfica: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    console.error("❌ Error generando gráfica personalizada:", errorMessage);
+    await context.sendActivity(`⚠️ Error al generar la gráfica: ${errorMessage}`);
   }
 }
 
-/**
- * Obtiene descripción de la gráfica según el tipo
- */
 function getChartDescription(type: string): string {
   switch (type) {
     case 'bar':
@@ -339,9 +321,6 @@ function getChartDescription(type: string): string {
   }
 }
 
-/**
- * Obtiene resumen de datos
- */
 function getDataSummary(type: string): string {
   switch (type) {
     case 'bar':

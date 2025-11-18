@@ -18,10 +18,6 @@ server.listen(PORT, () => {
   console.log(`\n✅ ${server.name} listening on ${server.url}`);
   console.log('🤖 Bot listo para recibir mensajes');
   console.log(`📍 Endpoint: ${server.url}/api/messages`);
-  console.log('\n🔧 Configuración:');
-  console.log(`   Bot ID: ${config.MicrosoftAppId ? '✓' : '✗'}`);
-  console.log(`   Tenant ID: ${config.MicrosoftAppTenantId ? '✓' : '✗'}`);
-  console.log(`   App Type: ${config.MicrosoftAppType || 'MultiTenant'}`);
 });
 
 // Configurar autenticación del bot
@@ -47,7 +43,6 @@ adapter.onTurnError = async (context: TurnContext, error: Error) => {
 
   try {
     await context.sendActivity("❌ El bot encontró un error. Por favor intenta de nuevo.");
-    await context.sendActivity(`Detalles del error: ${error.message}`);
   } catch (sendError) {
     console.error("Error al enviar mensaje de error:", sendError);
   }
