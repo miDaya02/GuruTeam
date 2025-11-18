@@ -1,5 +1,6 @@
-import { TurnContext, CardFactory, Attachment } from "botbuilder";
+import { TurnContext, CardFactory } from "botbuilder";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
+import type { ChartConfiguration } from "chart.js";
 
 /**
  * Genera una gráfica y la envía como imagen en un Adaptive Card
@@ -11,13 +12,17 @@ export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' 
     // Configurar el canvas para Chart.js
     const width = 800;
     const height = 600;
-    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({ 
+      width, 
+      height,
+      backgroundColour: 'white'
+    });
 
-    // Datos de ejemplo (puedes cambiarlos por datos reales)
+    // Datos de ejemplo
     const configuration = getChartConfiguration(chartType);
 
     // Generar la imagen
-    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
+    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration as any);
     const base64Image = imageBuffer.toString('base64');
 
     // Crear Adaptive Card con la imagen
@@ -33,38 +38,52 @@ export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' 
         },
         {
           type: "TextBlock",
-          text: `Tipo: ${chartType.toUpperCase()}`,
+          text: getChartDescription(chartType),
           spacing: "None",
-          isSubtle: true
+          isSubtle: true,
+          wrap: true
         },
         {
           type: "Image",
           url: `data:image/png;base64,${base64Image}`,
-          size: "Large"
+          size: "Stretch",
+          altText: `Gráfica de tipo ${chartType}`
+        },
+        {
+          type: "TextBlock",
+          text: "💡 **Datos mostrados:**",
+          weight: "Bolder",
+          spacing: "Medium"
+        },
+        {
+          type: "TextBlock",
+          text: getDataSummary(chartType),
+          wrap: true,
+          spacing: "Small"
         }
       ],
       actions: [
         {
           type: "Action.Submit",
-          title: "Actualizar datos",
-          data: { action: "refresh_chart" }
+          title: "🔄 Ver otra gráfica",
+          data: { action: "show_charts_menu" }
         }
       ]
     });
 
     await context.sendActivity({ attachments: [card] });
-    console.log("✅ Gráfica enviada");
+    console.log("✅ Gráfica enviada exitosamente");
 
   } catch (error: any) {
-    console.error("❌ Error generando gráfica:", error.message);
-    await context.sendActivity("⚠️ No se pudo generar la gráfica.");
+    console.error("❌ Error generando gráfica:", error);
+    await context.sendActivity(`⚠️ Error al generar la gráfica: ${error.message}`);
   }
 }
 
 /**
  * Genera configuración de Chart.js según el tipo
  */
-function getChartConfiguration(type: 'bar' | 'line' | 'pie') {
+function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration {
   const labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'];
   const data = [65, 59, 80, 81, 56, 55];
 
@@ -75,23 +94,42 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie') {
         data: {
           labels: labels,
           datasets: [{
-            label: 'Ventas 2024',
+            label: 'Ventas (Miles)',
             data: data,
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
             borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1
+            borderWidth: 2
           }]
         },
         options: {
+          responsive: true,
           scales: {
             y: {
-              beginAtZero: true
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Miles de pesos'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: 'Mes'
+              }
             }
           },
           plugins: {
             title: {
               display: true,
-              text: 'Ventas Mensuales'
+              text: 'Ventas Mensuales 2024',
+              font: {
+                size: 18,
+                weight: 'bold'
+              }
+            },
+            legend: {
+              display: true,
+              position: 'top'
             }
           }
         }
@@ -103,18 +141,39 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie') {
         data: {
           labels: labels,
           datasets: [{
-            label: 'Progreso',
+            label: 'Crecimiento',
             data: data,
-            fill: false,
+            fill: true,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
             borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
+            borderWidth: 3,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: 'rgb(75, 192, 192)'
           }]
         },
         options: {
+          responsive: true,
           plugins: {
             title: {
               display: true,
-              text: 'Tendencia Mensual'
+              text: 'Tendencia de Crecimiento',
+              font: {
+                size: 18,
+                weight: 'bold'
+              }
+            },
+            legend: {
+              display: true
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Unidades'
+              }
             }
           }
         }
@@ -129,18 +188,34 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie') {
             label: 'Distribución',
             data: [30, 50, 15, 5],
             backgroundColor: [
-              'rgba(255, 99, 132, 0.5)',
-              'rgba(54, 162, 235, 0.5)',
-              'rgba(255, 206, 86, 0.5)',
-              'rgba(75, 192, 192, 0.5)'
-            ]
+              'rgba(255, 99, 132, 0.8)',
+              'rgba(54, 162, 235, 0.8)',
+              'rgba(255, 206, 86, 0.8)',
+              'rgba(75, 192, 192, 0.8)'
+            ],
+            borderColor: [
+              'rgba(255, 99, 132, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)'
+            ],
+            borderWidth: 2
           }]
         },
         options: {
+          responsive: true,
           plugins: {
             title: {
               display: true,
-              text: 'Distribución por Producto'
+              text: 'Distribución por Producto',
+              font: {
+                size: 18,
+                weight: 'bold'
+              }
+            },
+            legend: {
+              display: true,
+              position: 'right'
             }
           }
         }
@@ -159,11 +234,17 @@ export async function sendCustomChart(
   type: 'bar' | 'line' | 'pie' = 'bar'
 ) {
   try {
+    console.log(`📊 Generando gráfica personalizada: ${title}`);
+
     const width = 800;
     const height = 600;
-    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({ 
+      width, 
+      height,
+      backgroundColour: 'white'
+    });
 
-    const configuration: any = {
+    const configuration: ChartConfiguration = {
       type: type,
       data: {
         labels: labels,
@@ -171,25 +252,39 @@ export async function sendCustomChart(
           label: title,
           data: data,
           backgroundColor: type === 'pie' 
-            ? data.map((_, i) => `hsla(${i * 60}, 70%, 60%, 0.5)`)
-            : 'rgba(54, 162, 235, 0.5)',
+            ? data.map((_, i) => `hsla(${i * 60}, 70%, 60%, 0.7)`)
+            : 'rgba(54, 162, 235, 0.7)',
           borderColor: type === 'pie'
             ? data.map((_, i) => `hsla(${i * 60}, 70%, 50%, 1)`)
             : 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
+          borderWidth: 2
         }]
       },
       options: {
+        responsive: true,
         plugins: {
           title: {
             display: true,
-            text: title
+            text: title,
+            font: {
+              size: 18,
+              weight: 'bold'
+            }
+          },
+          legend: {
+            display: true,
+            position: type === 'pie' ? 'right' : 'top'
           }
-        }
+        },
+        scales: type !== 'pie' ? {
+          y: {
+            beginAtZero: true
+          }
+        } : undefined
       }
     };
 
-    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
+    const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration as any);
     const base64Image = imageBuffer.toString('base64');
 
     const card = CardFactory.adaptiveCard({
@@ -200,20 +295,62 @@ export async function sendCustomChart(
           type: "TextBlock",
           text: title,
           weight: "Bolder",
-          size: "Large"
+          size: "Large",
+          wrap: true
         },
         {
           type: "Image",
           url: `data:image/png;base64,${base64Image}`,
-          size: "Large"
+          size: "Stretch",
+          altText: title
+        },
+        {
+          type: "FactSet",
+          facts: labels.map((label, index) => ({
+            title: label,
+            value: data[index].toLocaleString('es-ES')
+          }))
         }
       ]
     });
 
     await context.sendActivity({ attachments: [card] });
+    console.log("✅ Gráfica personalizada enviada");
 
   } catch (error: any) {
-    console.error("❌ Error generando gráfica personalizada:", error.message);
-    await context.sendActivity("⚠️ No se pudo generar la gráfica.");
+    console.error("❌ Error generando gráfica personalizada:", error);
+    await context.sendActivity(`⚠️ Error al generar la gráfica: ${error.message}`);
+  }
+}
+
+/**
+ * Obtiene descripción de la gráfica según el tipo
+ */
+function getChartDescription(type: string): string {
+  switch (type) {
+    case 'bar':
+      return 'Gráfica de barras - Ideal para comparar valores entre categorías';
+    case 'line':
+      return 'Gráfica de líneas - Perfecta para mostrar tendencias a lo largo del tiempo';
+    case 'pie':
+      return 'Gráfica circular - Muestra la distribución porcentual de datos';
+    default:
+      return 'Visualización de datos';
+  }
+}
+
+/**
+ * Obtiene resumen de datos
+ */
+function getDataSummary(type: string): string {
+  switch (type) {
+    case 'bar':
+      return 'Ventas mensuales del primer semestre. Total: $416,000';
+    case 'line':
+      return 'Tendencia de crecimiento con promedio de 70.17 unidades';
+    case 'pie':
+      return 'Producto B lidera con 50% de participación';
+    default:
+      return 'Datos de ejemplo';
   }
 }
