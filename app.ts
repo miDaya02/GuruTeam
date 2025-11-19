@@ -11,7 +11,7 @@ export class TeamsBot extends TeamsActivityHandler {
       
       console.log(`📨 Mensaje recibido: "${text}"`);
 
-      // ==================== COMANDOS DE GRÁFICAS ====================
+   
       
       // Gráfica de barras
       if (text.includes("grafica") || text.includes("gráfica") || text.includes("chart")) {
@@ -73,21 +73,21 @@ export class TeamsBot extends TeamsActivityHandler {
         return;
       }
 
-      // ==================== COMANDO INFO ====================
+    
       if (text === "info" || text === "/info" || text.includes("cuenta") || text.includes("credenciales")) {
         await userInfo(context);
         await next();
         return;
       }
 
-      // ==================== COMANDO RESET ====================
+     
       if (text === "/reset") {
         await context.sendActivity("🔄 Conversación reiniciada.");
         await next();
         return;
       }
 
-      // ==================== COMANDO AYUDA ====================
+    
       if (text === "ayuda" || text === "help" || text === "/help") {
         const helpMessage = `🤖 **GuruTeam Bot - Comandos Disponibles**
 
@@ -116,7 +116,7 @@ export class TeamsBot extends TeamsActivityHandler {
         return;
       }
 
-      // ==================== SALUDO ====================
+  
       if (text === "hi" || text === "hello" || text === "hola") {
         await context.sendActivity(`¡Hola! 👋 Soy GuruTeam Bot.
 
@@ -130,7 +130,7 @@ Escribe **ayuda** para ver todos los comandos disponibles.`);
         return;
       }
 
-      // ==================== RESPUESTA POR DEFECTO ====================
+   
       await context.sendActivity(`Recibí: "${context.activity.text}"
 
 💡 Prueba comandos como:

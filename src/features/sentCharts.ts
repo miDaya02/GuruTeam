@@ -3,6 +3,43 @@ import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 import type { ChartConfiguration } from "chart.js";
 
 /**
+ * Paleta de colores siguiendo Microsoft Fluent Design
+ */
+const MICROSOFT_COLORS = {
+  primary: {
+    blue: 'rgba(0, 120, 212, 0.8)',
+    blueBorder: 'rgba(0, 120, 212, 1)',
+    blueLight: 'rgba(0, 120, 212, 0.2)',
+  },
+  secondary: {
+    teal: 'rgba(0, 183, 195, 0.8)',
+    tealBorder: 'rgba(0, 183, 195, 1)',
+    purple: 'rgba(136, 23, 152, 0.8)',
+    purpleBorder: 'rgba(136, 23, 152, 1)',
+    orange: 'rgba(247, 99, 12, 0.8)',
+    orangeBorder: 'rgba(247, 99, 12, 1)',
+    green: 'rgba(16, 124, 16, 0.8)',
+    greenBorder: 'rgba(16, 124, 16, 1)',
+  },
+  chart: [
+    'rgba(0, 120, 212, 0.85)',    // Blue
+    'rgba(0, 183, 195, 0.85)',    // Teal
+    'rgba(136, 23, 152, 0.85)',   // Purple
+    'rgba(247, 99, 12, 0.85)',    // Orange
+    'rgba(16, 124, 16, 0.85)',    // Green
+    'rgba(232, 17, 35, 0.85)',    // Red
+  ],
+  chartBorder: [
+    'rgba(0, 120, 212, 1)',
+    'rgba(0, 183, 195, 1)',
+    'rgba(136, 23, 152, 1)',
+    'rgba(247, 99, 12, 1)',
+    'rgba(16, 124, 16, 1)',
+    'rgba(232, 17, 35, 1)',
+  ]
+};
+
+/**
  * Genera una gráfica y la envía como imagen en un Adaptive Card
  */
 export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' | 'pie' = 'bar') {
@@ -24,35 +61,53 @@ export async function sendChart(context: TurnContext, chartType: 'bar' | 'line' 
       version: "1.4",
       body: [
         {
-          type: "TextBlock",
-          text: "📊 Gráfica de Datos",
-          weight: "Bolder",
-          size: "Large"
-        },
-        {
-          type: "TextBlock",
-          text: getChartDescription(chartType),
-          spacing: "None",
-          isSubtle: true,
-          wrap: true
+          type: "Container",
+          style: "emphasis",
+          items: [
+            {
+              type: "TextBlock",
+              text: getChartTitle(chartType),
+              weight: "Bolder",
+              size: "Large",
+              color: "Accent"
+            },
+            {
+              type: "TextBlock",
+              text: getChartDescription(chartType),
+              spacing: "None",
+              isSubtle: true,
+              wrap: true,
+              size: "Small"
+            }
+          ],
+          bleed: true
         },
         {
           type: "Image",
           url: `data:image/png;base64,${base64Image}`,
           size: "Stretch",
-          altText: `Gráfica de tipo ${chartType}`
-        },
-        {
-          type: "TextBlock",
-          text: "💡 **Datos mostrados:**",
-          weight: "Bolder",
+          altText: `Gráfica de tipo ${chartType}`,
           spacing: "Medium"
         },
+        ...(chartType === 'pie' ? getPieChartTable() : []),
         {
-          type: "TextBlock",
-          text: getDataSummary(chartType),
-          wrap: true,
-          spacing: "Small"
+          type: "Container",
+          spacing: "Medium",
+          style: "emphasis",
+          items: [
+            {
+              type: "TextBlock",
+              text: "📊 Resumen de datos",
+              weight: "Bolder",
+              size: "Medium"
+            },
+            {
+              type: "TextBlock",
+              text: getDataSummary(chartType),
+              wrap: true,
+              spacing: "Small"
+            }
+          ]
         }
       ],
       actions: [
@@ -84,42 +139,91 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration
         data: {
           labels: labels,
           datasets: [{
-            label: 'Ventas (Miles)',
+            label: 'Ventas (Miles $)',
             data: data,
-            backgroundColor: 'rgba(54, 162, 235, 0.7)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 2
+            backgroundColor: MICROSOFT_COLORS.primary.blue,
+            borderColor: MICROSOFT_COLORS.primary.blueBorder,
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
           }]
         },
         options: {
           responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Miles de pesos'
-              }
-            },
-            x: {
-              title: {
-                display: true,
-                text: 'Mes'
-              }
-            }
-          },
           plugins: {
             title: {
               display: true,
               text: 'Ventas Mensuales 2024',
               font: {
-                size: 18,
-                weight: 'bold'
-              }
+                size: 24,
+                weight: 'bold',
+                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+              },
+              padding: {
+                top: 10,
+                bottom: 20
+              },
+              color: '#323130'
             },
             legend: {
               display: true,
-              position: 'top'
+              position: 'top',
+              labels: {
+                font: {
+                  size: 14,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                },
+                padding: 15,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
+                lineWidth: 1
+              },
+              ticks: {
+                font: {
+                  size: 12,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                },
+                callback: function(value) {
+                  return '$' + value + 'K';
+                }
+              },
+              title: {
+                display: true,
+                text: 'Miles de pesos',
+                font: {
+                  size: 14,
+                  weight: 'bold',
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 12,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                }
+              },
+              title: {
+                display: true,
+                text: 'Mes',
+                font: {
+                  size: 14,
+                  weight: 'bold',
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                }
+              }
             }
           }
         }
@@ -131,15 +235,21 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration
         data: {
           labels: labels,
           datasets: [{
-            label: 'Crecimiento',
+            label: 'Tendencia de Crecimiento',
             data: data,
             fill: true,
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: MICROSOFT_COLORS.primary.blueLight,
+            borderColor: MICROSOFT_COLORS.primary.blueBorder,
             borderWidth: 3,
             tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: 'rgb(75, 192, 192)'
+            pointRadius: 6,
+            pointBackgroundColor: MICROSOFT_COLORS.primary.blueBorder,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointHoverRadius: 8,
+            pointHoverBackgroundColor: MICROSOFT_COLORS.primary.blueBorder,
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 3
           }]
         },
         options: {
@@ -147,22 +257,64 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration
           plugins: {
             title: {
               display: true,
-              text: 'Tendencia de Crecimiento',
+              text: 'Tendencia de Crecimiento 2024',
               font: {
-                size: 18,
-                weight: 'bold'
-              }
+                size: 24,
+                weight: 'bold',
+                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+              },
+              padding: {
+                top: 10,
+                bottom: 20
+              },
+              color: '#323130'
             },
             legend: {
-              display: true
+              display: true,
+              position: 'top',
+              labels: {
+                font: {
+                  size: 14,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                },
+                padding: 15,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
             }
           },
           scales: {
             y: {
               beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
+                lineWidth: 1
+              },
+              ticks: {
+                font: {
+                  size: 12,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                }
+              },
               title: {
                 display: true,
-                text: 'Unidades'
+                text: 'Unidades',
+                font: {
+                  size: 14,
+                  weight: 'bold',
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 12,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                }
               }
             }
           }
@@ -173,23 +325,15 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration
       return {
         type: 'pie',
         data: {
-          labels: ['Producto A', 'Producto B', 'Producto C', 'Producto D'],
+          labels: ['Nómina', 'Servicios', 'Proveedores', 'Impuestos', 'Otros'],
           datasets: [{
-            label: 'Distribución',
-            data: [30, 50, 15, 5],
-            backgroundColor: [
-              'rgba(255, 99, 132, 0.8)',
-              'rgba(54, 162, 235, 0.8)',
-              'rgba(255, 206, 86, 0.8)',
-              'rgba(75, 192, 192, 0.8)'
-            ],
-            borderColor: [
-              'rgba(255, 99, 132, 1)',
-              'rgba(54, 162, 235, 1)',
-              'rgba(255, 206, 86, 1)',
-              'rgba(75, 192, 192, 1)'
-            ],
-            borderWidth: 2
+            label: 'Distribución de Pagos',
+            data: [45, 20, 18, 12, 5],
+            backgroundColor: MICROSOFT_COLORS.chart,
+            borderColor: MICROSOFT_COLORS.chartBorder,
+            borderWidth: 2,
+            hoverOffset: 15,
+            hoverBorderWidth: 3
           }]
         },
         options: {
@@ -197,20 +341,134 @@ function getChartConfiguration(type: 'bar' | 'line' | 'pie'): ChartConfiguration
           plugins: {
             title: {
               display: true,
-              text: 'Distribución por Producto',
+              text: 'Distribución de Pagos - Noviembre 2024',
               font: {
-                size: 18,
-                weight: 'bold'
-              }
+                size: 24,
+                weight: 'bold',
+                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+              },
+              padding: {
+                top: 10,
+                bottom: 20
+              },
+              color: '#323130'
             },
             legend: {
               display: true,
-              position: 'right'
+              position: 'right',
+              labels: {
+                font: {
+                  size: 13,
+                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                },
+                padding: 15,
+                usePointStyle: true,
+                pointStyle: 'circle',
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  if (data.labels && data.datasets.length) {
+                    const dataset = data.datasets[0];
+                    const total = (dataset.data as number[]).reduce((a, b) => a + b, 0);
+                    return data.labels.map((label, i) => {
+                      const value = (dataset.data as number[])[i];
+                      const percentage = ((value / total) * 100).toFixed(1);
+                      return {
+                        text: `${label}: ${percentage}%`,
+                        fillStyle: (dataset.backgroundColor as string[])[i],
+                        hidden: false,
+                        index: i
+                      };
+                    });
+                  }
+                  return [];
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed;
+                  const total = (context.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${label}: $${value}K (${percentage}%)`;
+                }
+              }
             }
           }
         }
       };
   }
+}
+
+function getPieChartTable() {
+  // Datos de ejemplo de pagos
+  const paymentData = [
+    { category: 'Nómina', amount: 45, percentage: 45, lastPayment: '15/11/2024', status: '✅' },
+    { category: 'Servicios', amount: 20, percentage: 20, lastPayment: '10/11/2024', status: '✅' },
+    { category: 'Proveedores', amount: 18, percentage: 18, lastPayment: '12/11/2024', status: '✅' },
+    { category: 'Impuestos', amount: 12, percentage: 12, lastPayment: '05/11/2024', status: '✅' },
+    { category: 'Otros', amount: 5, percentage: 5, lastPayment: '08/11/2024', status: '✅' }
+  ];
+
+  return [
+    {
+      type: "Container",
+      spacing: "Medium",
+      separator: true,
+      items: [
+        {
+          type: "TextBlock",
+          text: "💰 Detalle de Pagos",
+          weight: "Bolder",
+          size: "Medium",
+          spacing: "Small"
+        },
+        {
+          type: "Table",
+          gridStyle: "accent",
+          firstRowAsHeader: true,
+          columns: [
+            { width: 2 },
+            { width: 1 },
+            { width: 1 },
+            { width: 1 },
+            { width: 1 }
+          ],
+          rows: [
+            {
+              type: "TableRow",
+              cells: [
+                { type: "TableCell", items: [{ type: "TextBlock", text: "Categoría", weight: "Bolder", size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: "Monto", weight: "Bolder", size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: "%", weight: "Bolder", size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: "Último Pago", weight: "Bolder", size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: "Estado", weight: "Bolder", size: "Small" }] }
+              ]
+            },
+            ...paymentData.map(item => ({
+              type: "TableRow",
+              cells: [
+                { type: "TableCell", items: [{ type: "TextBlock", text: item.category, size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: `$${item.amount}K`, size: "Small", weight: "Bolder" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: `${item.percentage}%`, size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: item.lastPayment, size: "Small" }] },
+                { type: "TableCell", items: [{ type: "TextBlock", text: item.status, size: "Small" }] }
+              ]
+            }))
+          ]
+        },
+        {
+          type: "TextBlock",
+          text: "**Total:** $100K",
+          weight: "Bolder",
+          size: "Medium",
+          horizontalAlignment: "Right",
+          spacing: "Small"
+        }
+      ]
+    }
+  ];
 }
 
 export async function sendCustomChart(
@@ -237,12 +495,20 @@ export async function sendCustomChart(
           label: title,
           data: data,
           backgroundColor: type === 'pie' 
-            ? data.map((_, i) => `hsla(${i * 60}, 70%, 60%, 0.7)`)
-            : 'rgba(54, 162, 235, 0.7)',
+            ? MICROSOFT_COLORS.chart.slice(0, data.length)
+            : MICROSOFT_COLORS.primary.blue,
           borderColor: type === 'pie'
-            ? data.map((_, i) => `hsla(${i * 60}, 70%, 50%, 1)`)
-            : 'rgba(54, 162, 235, 1)',
-          borderWidth: 2
+            ? MICROSOFT_COLORS.chartBorder.slice(0, data.length)
+            : MICROSOFT_COLORS.primary.blueBorder,
+          borderWidth: 2,
+          ...(type === 'bar' && {
+            borderRadius: 8,
+            borderSkipped: false,
+          }),
+          ...(type === 'pie' && {
+            hoverOffset: 15,
+            hoverBorderWidth: 3
+          })
         }]
       },
       options: {
@@ -252,18 +518,54 @@ export async function sendCustomChart(
             display: true,
             text: title,
             font: {
-              size: 18,
-              weight: 'bold'
-            }
+              size: 24,
+              weight: 'bold',
+              family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+            },
+            padding: {
+              top: 10,
+              bottom: 20
+            },
+            color: '#323130'
           },
           legend: {
             display: true,
-            position: type === 'pie' ? 'right' : 'top'
+            position: type === 'pie' ? 'right' : 'top',
+            labels: {
+              font: {
+                size: 14,
+                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+              },
+              padding: 15,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
           }
         },
         scales: type !== 'pie' ? {
           y: {
-            beginAtZero: true
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)',
+              lineWidth: 1
+            },
+            ticks: {
+              font: {
+                size: 12,
+                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+              }
+            }
+          },
+          x: {
+            grid: {
+              display: false
+            },
+            ticks: {
+              font: {
+                size: 12,
+                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+              }
+            }
           }
         } : undefined
       }
@@ -277,24 +579,46 @@ export async function sendCustomChart(
       version: "1.4",
       body: [
         {
-          type: "TextBlock",
-          text: title,
-          weight: "Bolder",
-          size: "Large",
-          wrap: true
+          type: "Container",
+          style: "emphasis",
+          items: [
+            {
+              type: "TextBlock",
+              text: title,
+              weight: "Bolder",
+              size: "Large",
+              wrap: true,
+              color: "Accent"
+            }
+          ],
+          bleed: true
         },
         {
           type: "Image",
           url: `data:image/png;base64,${base64Image}`,
           size: "Stretch",
-          altText: title
+          altText: title,
+          spacing: "Medium"
         },
         {
-          type: "FactSet",
-          facts: labels.map((label, index) => ({
-            title: label,
-            value: data[index].toLocaleString('es-ES')
-          }))
+          type: "Container",
+          spacing: "Medium",
+          style: "emphasis",
+          items: [
+            {
+              type: "TextBlock",
+              text: "📊 Datos",
+              weight: "Bolder",
+              size: "Medium"
+            },
+            {
+              type: "FactSet",
+              facts: labels.map((label, index) => ({
+                title: label,
+                value: data[index].toLocaleString('es-ES')
+              }))
+            }
+          ]
         }
       ]
     });
@@ -308,14 +632,27 @@ export async function sendCustomChart(
   }
 }
 
+function getChartTitle(type: string): string {
+  switch (type) {
+    case 'bar':
+      return '📊 Gráfica de Barras';
+    case 'line':
+      return '📈 Gráfica de Tendencia';
+    case 'pie':
+      return '🥧 Distribución de Pagos';
+    default:
+      return '📊 Visualización de Datos';
+  }
+}
+
 function getChartDescription(type: string): string {
   switch (type) {
     case 'bar':
-      return 'Gráfica de barras - Ideal para comparar valores entre categorías';
+      return 'Comparación de valores mensuales - Ideal para análisis de ventas';
     case 'line':
-      return 'Gráfica de líneas - Perfecta para mostrar tendencias a lo largo del tiempo';
+      return 'Visualización de tendencias a lo largo del tiempo';
     case 'pie':
-      return 'Gráfica circular - Muestra la distribución porcentual de datos';
+      return 'Distribución porcentual de pagos por categoría';
     default:
       return 'Visualización de datos';
   }
@@ -324,12 +661,12 @@ function getChartDescription(type: string): string {
 function getDataSummary(type: string): string {
   switch (type) {
     case 'bar':
-      return 'Ventas mensuales del primer semestre. Total: $416,000';
+      return '📈 **Total semestral:** $416,000 | **Promedio mensual:** $69,333 | **Mejor mes:** Abril ($81K)';
     case 'line':
-      return 'Tendencia de crecimiento con promedio de 70.17 unidades';
+      return '📊 **Promedio:** 70.17 unidades | **Tendencia:** Positiva | **Máximo:** 81 unidades';
     case 'pie':
-      return 'Producto B lidera con 50% de participación';
+      return '💰 **Total mensual:** $100K | **Mayor categoría:** Nómina (45%) | **Todos los pagos al día**';
     default:
-      return 'Datos de ejemplo';
+      return 'Datos de ejemplo para visualización';
   }
 }
